@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/providers/auth-provider";
-import { useGED } from "@/components/providers/data-provider";
+//import { useGED } from "@/components/providers/data-provider";
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -16,13 +16,14 @@ interface HeaderProps {
 
 export function Header({ onMenuToggle }: HeaderProps) {
   const { user, logout } = useAuth();
-  const { notifications = [] } = useGED();
+  //const { notifications = [] } = useGED();
+  //const notifications = [];
   const router = useRouter();
   
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = 0;
 
   const handleLogout = () => {
     logout();
@@ -36,7 +37,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
     }
   };
 
-  const displayName = user?.fullName || user?.username || "Utilisateur";
+  const displayName = user?.nom || user?.postNom || "Utilisateur";
   const displayEmail = user?.email || "";
 
   const initials = displayName
@@ -88,7 +89,7 @@ export function Header({ onMenuToggle }: HeaderProps) {
             className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-slate-100 transition-colors"
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.avatar} alt={displayName} />
+              <AvatarImage src="" alt={displayName} />
               <AvatarFallback className="bg-blue-600 text-white text-xs font-semibold">
                 {initials}
               </AvatarFallback>

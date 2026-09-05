@@ -245,7 +245,7 @@ export default function UtilisateursContent() {
               </select>
 
               <div className="sm:col-span-3">
-                <select value={idServiceSelect} onChange={(e) => setIdServiceSelect(e.target.value ? Number(e.target.value) : "")} className="w-full h-8 text-xs bg-white border border-slate-200 rounded px-2">
+                <select value={idServiceSelect} onChange={(e) => setIdServiceSelect(e.target.value ? Number(e.target.value) : 0)} className="w-full h-8 text-xs bg-white border border-slate-200 rounded px-2">
                   <option value="">-- Rattacher à un service --</option>
                   {services.map((s) => (
                     <option key={s.idService} value={s.idService}>{s.nom} ({s.code})</option>

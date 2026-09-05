@@ -10,15 +10,20 @@ import { registrationTrend } from "@/mock-data";
 const PIE_COLORS = ["#2563EB", "#DB2777"];
 
 interface DashboardChartsProps {
-  men: number;
-  women: number;
-  roomData: { name: string; occupied: number; capacity: number }[];
+    totalDossiers: number;
+    totalDocuments: number;
+    totalServices: number;
+    totalUsers: number;
+    pendingDossiers: number;
+    completedDossiers: number;
+    archivedDossiers: number;
+    urgentDossiers: number;
 }
 
-export function DashboardCharts({ men, women, roomData }: DashboardChartsProps) {
+export function DashboardCharts(data: DashboardChartsProps) {
   const genderData = [
-    { name: "Hommes", value: men },
-    { name: "Femmes", value: women },
+    { name: "Hommes", value: 0 },
+    { name: "Femmes", value: 0 },
   ];
 
   return (
@@ -73,7 +78,7 @@ export function DashboardCharts({ men, women, roomData }: DashboardChartsProps) 
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={roomData} layout="vertical">
+            <BarChart data={[]} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" />
               <XAxis type="number" tick={{ fontSize: 12 }} />
               <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12 }} />

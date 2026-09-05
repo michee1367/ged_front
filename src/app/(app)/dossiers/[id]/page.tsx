@@ -449,7 +449,6 @@ export default function DossierDetailPage({ params }: { params: Promise<{ id: st
                     ref={editorRef}
                     contentEditable
                     className="min-h-[220px] p-3 text-sm focus:outline-none focus:ring-0 font-sans leading-relaxed text-slate-800"
-                    placeholder="Saisissez votre réponse officielle ici..."
                   />
                 </div>
 
@@ -527,13 +526,13 @@ export default function DossierDetailPage({ params }: { params: Promise<{ id: st
         <div className="lg:col-span-5 space-y-6">
           <Tabs defaultValue="documents" className="w-full">
             <TabsList className="grid w-full grid-cols-3 text-xs">
-              <TabsTrigger value="documents" className="flex items-center gap-1.5 px-2 py-1.5">
+              <TabsTrigger value="documents" >
                 <Paperclip className="h-3.5 w-3.5" /> Docs ({documents.length})
               </TabsTrigger>
-              <TabsTrigger value="commentaires" className="flex items-center gap-1.5 px-2 py-1.5">
+              <TabsTrigger value="commentaires" >
                 <MessageSquare className="h-3.5 w-3.5" /> Notes ({commentaires.length})
               </TabsTrigger>
-              <TabsTrigger value="historique" className="flex items-center gap-1.5 px-2 py-1.5">
+              <TabsTrigger value="historique" >
                 <History className="h-3.5 w-3.5" /> Historique ({historiques.length})
               </TabsTrigger>
             </TabsList>
@@ -673,118 +672,6 @@ export default function DossierDetailPage({ params }: { params: Promise<{ id: st
         </div>
 
       </div>
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FolderOpen className="h-5 w-5 text-blue-600" />
-                <h3 className="font-bold text-lg text-slate-900">Nouveau Dossier</h3>
-              </div>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleModifDossier} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Référence / Numéro d&apos;enregistrement</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: DOS-2026-001"
-                  value={newReference}
-                  onChange={(e) => setNewReference(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Intitulé du dossier</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ex: Demande d'Agrément - Direction A"
-                  value={newTitle}
-                  onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Expéditeur</label>
-                <select
-                  value={newExpediteurId}
-                  onChange={(e) => setNewExpediteurId(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="">-- Sélectionner un expediteur --</option>
-                  {utilisateurs.map((s: any) => (
-                    <option key={s.idUtilisateur} value={s.idUtilisateur}>{s.nom + " " + s.postNom + " " + s.prenom}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Niveau de priorité</label>
-                <select
-                  value={newPriority}
-                  onChange={(e) => setNewPriority(e.target.value as "normale" | "urgente")}
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                >
-                  {
-                    (Object.keys(PIORITIES_LABELS) as Priorite[]).map((p) => (
-                      <option key={p} value={p}>{PIORITIES_LABELS[p]}</option>
-                    ))
-                    
-                  }
-                </select>
-              </div>{/* Échéance compatible Spring Boot LocalDate */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Date d&apos;échéance
-                </label>
-                <input
-                  type="date"
-                  required
-                  min={todayFormatted} // Bloque la sélection de dates passées
-                  value={newEcheance}
-                  onChange={(e) => setNewEcheance(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
-                />
-                
-                {/* Raccourcis pratiques pour régler rapidement la date */}
-                <div className="flex gap-1.5 mt-2">
-                      {[
-                        { label: "+24h", days: 1 },
-                        { label: "+48h", days: 2 },
-                        { label: "+3j", days: 3 },
-                        { label: "+7j", days: 7 },
-                        { label: "+1m", days: 30 },
-                      ].map((item) => (
-                        <button
-                          key={item.label}
-                          type="button"
-                          onClick={() => {
-                            const targetDate = new Date();
-                            targetDate.setDate(targetDate.getDate() + item.days);
-                            setNewEcheance(targetDate.toISOString().split("T")[0]);
-                          }}
-                          className="text-[10px] bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 border border-slate-200 px-2 py-0.5 rounded transition-colors"
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>Annuler</Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">Créer le dossier</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -21,7 +21,7 @@ import {
   Archive
 } from "lucide-react";
 
-const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" | "success" | "warning" | "danger" }> = {
+const statusConfig: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "success" | "warning" | "danger" }> = {
   RECU: { label: "Reçu", variant: "warning" },
   EN_TRAITEMENT: { label: "En cours", variant: "warning" },
   EN_ATTENTE: { label: "En attente", variant: "danger" },
@@ -37,10 +37,7 @@ export default function DossiersPage() {
     services = [], 
     utilisateurs = [], 
     creerDossier,
-    loadServicesAndUtilisateurs,
-    deleteDossier, 
-    addDossier,
-    updateDossier 
+    loadServicesAndUtilisateurs
   } = useGED();
 
   // États locaux
@@ -52,7 +49,7 @@ export default function DossiersPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newReference, setNewReference] = useState("");
   const [newServiceId, setNewServiceId] = useState("");
-  const [newExpediteurId, setNewExpediteurId] = useState(undefined);
+  const [newExpediteurId, setNewExpediteurId] = useState<number|string|undefined>(undefined);
   const [newPriority, setNewPriority] = useState<Priorite>("NORMALE");
   const [newEcheance, setNewEcheance] = useState<string>(todayFormatted);
 
@@ -62,7 +59,7 @@ export default function DossiersPage() {
 
     const dossierData : EnregistrerDossierCommand = {
       objet: newTitle,
-      expediteurOrigineId: newExpediteurId,
+      expediteurOrigineId: typeof newExpediteurId == "string" ? parseInt(newExpediteurId): (newExpediteurId ? newExpediteurId : 0),
       echeance:newEcheance,
       priorite: newPriority || "NORMALE"
     };
@@ -91,25 +88,25 @@ export default function DossiersPage() {
   const handleDeleteDossier = (dossierId: string, e: React.MouseEvent) => {
     e.stopPropagation(); 
     if (confirm("Êtes-vous sûr de vouloir supprimer ce dossier ?")) {
-      if (deleteDossier) deleteDossier(dossierId);
+      //if (deleteDossier) deleteDossier(dossierId);
     }
   };
 
   const handleUpdateStatus = (dossierId: string, newStatus: string) => {
-    if (updateDossier) {
+    /*if (updateDossier) {
       updateDossier(dossierId, { status: newStatus });
       if (selectedDossier) {
         setSelectedDossier({ ...selectedDossier, status: newStatus });
       }
-    }
+    }*/
   };
 
   const handleTransferService = (dossierId: string, targetServiceId: string) => {
-    if (updateDossier && targetServiceId) {
+    /*if (updateDossier && targetServiceId) {
       updateDossier(dossierId, { serviceId: targetServiceId });
       setIsTransferring(false);
       setSelectedDossier(null);
-    }
+    }*/
   };
 
   return (
@@ -234,7 +231,7 @@ export default function DossiersPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Niveau de priorité</label>
                 <select
                   value={newPriority}
-                  onChange={(e) => setNewPriority(e.target.value as "normale" | "urgente")}
+                  onChange={(e) => setNewPriority(e.target.value as Priorite)}
                   className="w-full h-10 px-3 rounded-md border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                 >
                   {

@@ -40,7 +40,7 @@ export default function DashboardPage() {
   // Calcul dynamique de la répartition des dossiers par service pour le graphique
   const serviceDistributionData = services.map((service) => ({
     name: service.nom || service.code,
-    totalDossiers: dossiers.filter((d) => d.serviceId === service.id).length,
+    totalDossiers: dossiers.filter((d) => d.idService === service.idService).length,
   }));
 
   return (
@@ -112,11 +112,11 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Composant de Graphiques Visuels */}
+      {/* Composant de Graphiques Visuels 
       <DashboardCharts
         stats={stats}
         serviceData={serviceDistributionData}
-      />
+      />*/}
     </div>
   );
 }
