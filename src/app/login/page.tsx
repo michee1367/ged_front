@@ -58,7 +58,7 @@ export default function LoginPage() {
         <div className="flex flex-col items-center mb-8">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 p-2.5 mb-4 shadow-lg">
             <img 
-              src="/logo-jeunesse.png" 
+              src="/logo.jpeg" 
               alt="Logo Ministère" 
               className="h-full w-full object-contain" 
             />

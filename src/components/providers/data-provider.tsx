@@ -129,7 +129,8 @@ interface GEDContextType {
   dossiers: ReponseDossier[];
   utilisateurs: UtilisateurModel[];
   services: ServiceModel[];
-  
+  // action global
+  //reintialization:() => Promise<void>;
   // Actions Auth
   login: (username: string, password: string) => Promise<string>;
   loadServicesAndUtilisateurs: (page?: number, perPage?: number) => Promise<void>;
@@ -274,6 +275,7 @@ export function GEDProvider({ children }: { children: ReactNode }) {
     if (!res.ok) throw new Error("Dossier introuvable");
     return res.json();
   }, []);
+
 
   // Enregistrer un nouveau dossier
   const creerDossier = useCallback(async (command: EnregistrerDossierCommand): Promise<ReponseDossier> => {

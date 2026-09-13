@@ -24,8 +24,8 @@ const navItems = [
   { href: "/dossiers", label: "Gestion des Dossiers", icon: FolderOpen },
   { href: "/admin/utilisateurs", label: "Utilisateurs", icon: Users },
   { href: "/admin/services", label: "Services", icon: Building2 },
-  { href: "/documents", label: "Documents", icon: FileText },
-  { href: "/parametres", label: "Paramètres", icon: Settings },
+  //{ href: "/documents", label: "Documents", icon: FileText },
+  //{ href: "/parametres", label: "Paramètres", icon: Settings },
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
@@ -53,7 +53,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden shrink-0 bg-white/10 p-1">
               <img 
-                src="/logo-jeunesse.png" 
+                src="/logo.jpeg" 
                 alt="Logo Ministère" 
                 className="h-full w-full object-contain"
               />

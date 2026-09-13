@@ -24,7 +24,7 @@ type FormData = z.infer<typeof schema>;
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const {  } = useGED();
+  const { loadServicesAndUtilisateurs } = useGED();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -45,6 +45,7 @@ export default function LoginPage() {
       // L'API GED attend la propriété `username` (on passe l'email saisi)
       await login(data.email, data.password);
       toast.success("Connexion réussie !");
+      await loadServicesAndUtilisateurs(1, 100)
       router.push("/dashboard");
     } catch (error: any) {
       toast.error(error?.message || "Identifiants incorrects ou compte inexistant");
@@ -58,9 +59,9 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 p-2.5 mb-4 shadow-lg">
+          <div className="flex h-30 w-50 items-center justify-center rounded-2xl bg-blue-600 p-2.5 mb-4 shadow-lg">
             <img 
-              src="/logo-jeunesse.png" 
+              src="/logo.jpeg" 
               alt="Logo Ministère" 
               className="h-full w-full object-contain" 
             />

@@ -100,32 +100,72 @@ export default function DossierDetailPage({ params }: { params: Promise<{ id: st
 
   useEffect(() => {
     async function loadData() {
-      try {
-        setLoading(true);
-        const [dData, docsData, histData, res, commets] = await Promise.all([
-          getDossierById(dossierId),
-          getDocumentsDossier(dossierId),
-          getHistoriqueDossier(dossierId),
-          getReponse(dossierId),
-          getCommentaires(dossierId)
-        ]);
-        setDossier(dData);
-        setDocuments(docsData);
-        setHistoriques(histData);
-        setCommentaires(commets.map(v => {return {
-          id: v.idCommentaire,
-          auteur: "",
-          date: "",
-          contenu: v.contenu
-        }}));
-        setReponse(res);
-        if (editorRef.current) editorRef.current.innerHTML = res.contenu || ""
-      } catch (err) {
-        console.error("Erreur de chargement du dossier", err);
-      } finally {
-        setLoading(false);
+    if (!dossierId) return;
+
+    try {
+      setLoading(true);
+
+      // Promise.allSettled attend que TOUTES les promesses soient terminées (succès ou échec)
+      const [dDataRes, docsDataRes, histDataRes, resRes, commetsRes] = await Promise.allSettled([
+        getDossierById(dossierId),
+        getDocumentsDossier(dossierId),
+        getHistoriqueDossier(dossierId),
+        getReponse(dossierId),
+        getCommentaires(dossierId)
+      ]);
+
+      // 1. Dossier
+      if (dDataRes.status === "fulfilled") {
+        setDossier(dDataRes.value);
+      } else {
+        console.error("Erreur dossier:", dDataRes.reason);
       }
+
+      // 2. Documents
+      if (docsDataRes.status === "fulfilled") {
+        setDocuments(docsDataRes.value);
+      } else {
+        console.error("Erreur documents:", docsDataRes.reason);
+      }
+
+      // 3. Historique
+      if (histDataRes.status === "fulfilled") {
+        setHistoriques(histDataRes.value);
+      } else {
+        console.error("Erreur historique:", histDataRes.reason);
+      }
+
+      // 4. Réponses
+      if (resRes.status === "fulfilled") {
+        const reponseData = resRes.value;
+        setReponse(reponseData);
+        if (editorRef.current) {
+          editorRef.current.innerHTML = reponseData?.contenu || "";
+        }
+      } else {
+        console.error("Erreur réponse:", resRes.reason);
+      }
+
+      // 5. Commentaires
+      if (commetsRes.status === "fulfilled" && Array.isArray(commetsRes.value)) {
+        setCommentaires(
+          commetsRes.value.map((v) => ({
+            id: v.idCommentaire,
+            auteur:   "",
+            date:  "",
+            contenu: v.contenu || ""
+          }))
+        );
+      } else if (commetsRes.status === "rejected") {
+        console.error("Erreur commentaires:", commetsRes.reason);
+      }
+
+    } catch (err) {
+      console.error("Erreur inattendue :", err);
+    } finally {
+      setLoading(false);
     }
+  }
     loadData();
   }, [dossierId, getDossierById, getDocumentsDossier, getHistoriqueDossier, getReponse, getCommentaires]);
 
