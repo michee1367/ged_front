@@ -12,36 +12,45 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { KpiCard } from "@/features/dashboard/kpi-card";
-import { DashboardCharts } from "@/features/dashboard/charts";
-import { useGED } from "@/components/providers/data-provider";
+import { useGED, KpisDashboard } from "@/components/providers/data-provider";
+
+const emptyKpis: KpisDashboard = {
+  totalDossiers: 0,
+  totalDocuments: 0,
+  totalServicesRattaches: 0,
+  totalUtilisateurs: 0,
+  totalDossiersEncours: 0,
+  totalDossiersTraites: 0,
+  totalDossiersArchivees: 0,
+  totalDossiersUrgents: 0,
+};
 
 export default function DashboardPage() {
-  //const { getStats, dossiers = [], services = [] } = useGED();
-  const { dossiers = [], services = [] } = useGED();
+  const { getKpis } = useGED();
   const [loading, setLoading] = useState(true);
-
-  //const stats = getStats ? getStats() : {
-  const stats = {
-    totalDossiers: 0,
-    totalDocuments: 0,
-    totalServices: 0,
-    totalUsers: 0,
-    pendingDossiers: 0,
-    completedDossiers: 0,
-    archivedDossiers: 0,
-    urgentDossiers: 0,
-  };
+  const [stats, setStats] = useState<KpisDashboard>(emptyKpis);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(t);
-  }, []);
+    let cancelled = false;
 
-  // Calcul dynamique de la répartition des dossiers par service pour le graphique
-  const serviceDistributionData = services.map((service) => ({
-    name: service.nom || service.code,
-    totalDossiers: dossiers.filter((d) => d.idService === service.idService).length,
-  }));
+    async function loadKpis() {
+      try {
+        const data = await getKpis();
+        if (!cancelled) setStats(data);
+      } catch (error) {
+        console.error("Erreur de récupération des KPI :", error);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadKpis();
+    const t = setTimeout(() => setLoading(false), 800);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [getKpis]);
 
   return (
     <div className="space-y-6">
@@ -70,53 +79,47 @@ export default function DashboardPage() {
         />
         <KpiCard
           title="Services Rattachés"
-          value={stats.totalServices}
+          value={stats.totalServicesRattaches}
           icon={<Building2 className="h-4 w-4" />}
           color="bg-purple-100 text-purple-600"
           loading={loading}
         />
         <KpiCard
           title="Agents / Utilisateurs"
-          value={stats.totalUsers}
+          value={stats.totalUtilisateurs}
           icon={<Users className="h-4 w-4" />}
           color="bg-indigo-100 text-indigo-600"
           loading={loading}
         />
         <KpiCard
           title="Dossiers en cours"
-          value={stats.pendingDossiers}
+          value={stats.totalDossiersEncours}
           icon={<Clock className="h-4 w-4" />}
           color="bg-amber-100 text-amber-600"
           loading={loading}
         />
         <KpiCard
           title="Dossiers Traités"
-          value={stats.completedDossiers}
+          value={stats.totalDossiersTraites}
           icon={<CheckCircle2 className="h-4 w-4" />}
           color="bg-emerald-100 text-emerald-600"
           loading={loading}
         />
         <KpiCard
           title="Dossiers Archivés"
-          value={stats.archivedDossiers}
+          value={stats.totalDossiersArchivees}
           icon={<Archive className="h-4 w-4" />}
           color="bg-slate-100 text-slate-600"
           loading={loading}
         />
         <KpiCard
           title="Dossiers Urgents"
-          value={stats.urgentDossiers}
+          value={stats.totalDossiersUrgents}
           icon={<AlertCircle className="h-4 w-4" />}
           color="bg-rose-100 text-rose-600"
           loading={loading}
         />
       </div>
-
-      {/* Composant de Graphiques Visuels 
-      <DashboardCharts
-        stats={stats}
-        serviceData={serviceDistributionData}
-      />*/}
     </div>
   );
 }

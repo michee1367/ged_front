@@ -18,11 +18,14 @@ export type Role =
   | "SECRETAIRE_GENERAL"
   | "DIRECTEUR"
   | "CHEF_DIVISION"
+  | "CHEF_BUREAU"
+  | "SECRETAIRE_BUREAU"
   | "AGENT"
-  | "ADMINISTRATEUR";
+  | "ADMINISTRATEUR"
+  | "VISIT";
 
 export type Priorite = "NORMALE" | "URGENTE" | "TRES_URGENTE";
-export const PIORITIES_LABELS: Record<Priorite, string> = {
+export const PRIORITIES_LABELS: Record<Priorite, string> = {
   NORMALE: "Normale",
   URGENTE: "Urgent",
   TRES_URGENTE: "Trés urgent"
@@ -35,8 +38,11 @@ export const ROLE_LABELS: Record<Role, string> = {
   SECRETAIRE_GENERAL: "Secrétaire Général",
   DIRECTEUR: "Directeur",
   CHEF_DIVISION: "Chef de Division",
+  CHEF_BUREAU: "Chef de Bureau",
+  SECRETAIRE_BUREAU: "Secrétaire de Bureau",
   AGENT: "Agent / Opérateur",
   ADMINISTRATEUR: "Administrateur System",
+  VISIT: "Visiteur",
 };
 
 export interface ServiceModel {
@@ -123,6 +129,37 @@ export interface TransmettreDossierCommand {
   idServiceDestinataire?: number;
   observation?: string;
 }
+export interface CreerServiceCommand {
+  nom?: string;
+  code?: string;
+}
+
+export interface ModifierUtilisateurCommand {
+  nom?: string;
+  postNom?: string;
+  prenom?: string;
+  phoneNumber?: string;
+  email?: string;
+  motDePasse?: string;
+  roles?: Role[];
+  actif?: boolean;
+  idService?: number;
+}
+
+export interface ModifierStatutDto {
+  actif: boolean;
+}
+
+export interface KpisDashboard {
+  totalDossiers: number;
+  totalDocuments: number;
+  totalServicesRattaches: number;
+  totalUtilisateurs: number;
+  totalDossiersEncours: number;
+  totalDossiersTraites: number;
+  totalDossiersArchivees: number;
+  totalDossiersUrgents: number;
+}
 
 interface GEDContextType {
   isReady: boolean;
@@ -148,11 +185,20 @@ interface GEDContextType {
   getDocumentsDossier: (dossierId: number) => Promise<ReponseDocument[]>;
   joindreDocument: (dossierId: number, titre: string, file: File) => Promise<ReponseDossier>;
   telechargerDocument: (documentId: number) => Promise<Blob>;
-  // Action service
   
   getCommentaires: (dossierId: number) => Promise<ReponseCommentaire[]>;
   getReponse: (dossierId: number) => Promise<ReponseReponse>;
 
+  // Action service
+  creerService: (command: CreerServiceCommand) =>  Promise<ServiceModel>;
+  modifierService: (id: number, command: CreerServiceCommand) => Promise<ServiceModel>;
+
+  // Actions utilisateurs
+  modifierUtilisateur: (id: number, command: ModifierUtilisateurCommand) => Promise<UtilisateurModel>;
+  modifierStatutUtilisateur: (id: number, actif: boolean) => Promise<UtilisateurModel>;
+
+  // Action dashboard
+  getKpis: () => Promise<KpisDashboard>;
 }
 
 const GEDContext = createContext<GEDContextType | null>(null);
@@ -161,9 +207,6 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/a
 function getAuthHeaders(): HeadersInit {
   if (typeof window === "undefined") return {};
   const token = localStorage.getItem("jwt_token");
-  console.log("################")
-  console.log(token)
-  console.log("#############")
   return {
     "Content-Type": "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -289,18 +332,78 @@ export function GEDProvider({ children }: { children: ReactNode }) {
     setDossiers((prev) => [newDossier, ...prev]);
     return newDossier;
   }, []);
-  //
-  // Enregistrer un nouveau dossier
-  const modifierDossier = useCallback(async (idDossier:number, command: ModifierDossierCommand): Promise<ReponseDossier> => {
-    const res = await fetch(`${API_BASE_URL}/dossiers/${idDossier}`, {
+
+  // Enregistrer un nouveau service
+  const creerService = useCallback(async (command: CreerServiceCommand): Promise<ServiceModel> => {
+    const res = await fetch(`${API_BASE_URL}/services`, {
       method: "POST",
       headers: getAuthHeaders(),
       body: JSON.stringify(command),
     });
-    if (!res.ok) throw new Error("Erreur lors de la création du dossier");
-    const newDossier: ReponseDossier = await res.json();
-    setDossiers((prev) => [newDossier, ...prev]);
-    return newDossier;
+    if (!res.ok) throw new Error("Erreur lors de la création du service");
+    const newService: ServiceModel = await res.json();
+    setServices((prev) => [newService, ...prev]);
+    return newService;
+  }, []);
+  // Modifier un dossier existant
+  const modifierDossier = useCallback(async (idDossier: number, command: ModifierDossierCommand): Promise<ReponseDossier> => {
+    const res = await fetch(`${API_BASE_URL}/dossiers/${idDossier}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(command),
+    });
+    if (!res.ok) throw new Error("Erreur lors de la modification du dossier");
+    const updated: ReponseDossier = await res.json();
+    setDossiers((prev) => prev.map((d) => (d.idDossier === idDossier ? updated : d)));
+    return updated;
+  }, []);
+
+  // Modifier un service
+  const modifierService = useCallback(async (id: number, command: CreerServiceCommand): Promise<ServiceModel> => {
+    const res = await fetch(`${API_BASE_URL}/services/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(command),
+    });
+    if (!res.ok) throw new Error("Erreur lors de la modification du service");
+    const updated: ServiceModel = await res.json();
+    setServices((prev) => prev.map((s) => (s.idService === id ? updated : s)));
+    return updated;
+  }, []);
+
+  // Modifier un utilisateur
+  const modifierUtilisateur = useCallback(async (id: number, command: ModifierUtilisateurCommand): Promise<UtilisateurModel> => {
+    const res = await fetch(`${API_BASE_URL}/utilisateurs/${id}`, {
+      method: "PUT",
+      headers: getAuthHeaders(),
+      body: JSON.stringify(command),
+    });
+    if (!res.ok) throw new Error("Erreur lors de la modification de l'utilisateur");
+    const updated: UtilisateurModel = await res.json();
+    setUtilisateurs((prev) => prev.map((u) => (u.idUtilisateur === id ? updated : u)));
+    return updated;
+  }, []);
+
+  // Activer / désactiver un utilisateur
+  const modifierStatutUtilisateur = useCallback(async (id: number, actif: boolean): Promise<UtilisateurModel> => {
+    const res = await fetch(`${API_BASE_URL}/utilisateurs/${id}/statut`, {
+      method: "PATCH",
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ actif } satisfies ModifierStatutDto),
+    });
+    if (!res.ok) throw new Error("Erreur lors du changement de statut de l'utilisateur");
+    const updated: UtilisateurModel = await res.json();
+    setUtilisateurs((prev) => prev.map((u) => (u.idUtilisateur === id ? updated : u)));
+    return updated;
+  }, []);
+
+  // KPIs du tableau de bord
+  const getKpis = useCallback(async (): Promise<KpisDashboard> => {
+    const res = await fetch(`${API_BASE_URL}/dashboard/kpis`, {
+      headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error("Erreur lors de la récupération des indicateurs");
+    return res.json();
   }, []);
 
   // Transmettre un dossier
@@ -418,7 +521,12 @@ export function GEDProvider({ children }: { children: ReactNode }) {
       refreshDossiers,
       getDossierById,
       creerDossier,
+      creerService,
+      modifierService,
       modifierDossier,
+      modifierUtilisateur,
+      modifierStatutUtilisateur,
+      getKpis,
       transmettreDossier,
       repondreDossier,
       commenterDossier,
@@ -440,7 +548,12 @@ export function GEDProvider({ children }: { children: ReactNode }) {
       refreshDossiers,
       getDossierById,
       creerDossier,
+      creerService,
+      modifierService,
       modifierDossier,
+      modifierUtilisateur,
+      modifierStatutUtilisateur,
+      getKpis,
       transmettreDossier,
       repondreDossier,
       commenterDossier,

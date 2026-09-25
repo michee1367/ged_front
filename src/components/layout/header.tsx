@@ -40,13 +40,8 @@ export function Header({ onMenuToggle }: HeaderProps) {
   const displayName = user?.nom || user?.postNom || "Utilisateur";
   const displayEmail = user?.email || "";
 
-  const initials = displayName
-    .split(" ")
-    .filter(Boolean)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "U";
+  // Logo utilisateur : image générée « U » (ui-avatars) ou avatar persistant
+  const userAvatar = `https://ui-avatars.com/api/?name=U&background=2563EB&color=fff&size=128`;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-white/80 backdrop-blur-sm px-4 md:px-6 gap-2">
@@ -89,9 +84,9 @@ export function Header({ onMenuToggle }: HeaderProps) {
             className="flex items-center gap-2 rounded-lg p-1.5 hover:bg-slate-100 transition-colors"
           >
             <Avatar className="h-8 w-8">
-              <AvatarImage src="" alt={displayName} />
+              <AvatarImage src={user?.avatar || userAvatar} alt={displayName} />
               <AvatarFallback className="bg-blue-600 text-white text-xs font-semibold">
-                {initials}
+                U
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block text-left">

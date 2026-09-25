@@ -10,8 +10,11 @@ export type Role =
   | "SECRETAIRE_GENERAL"
   | "DIRECTEUR"
   | "CHEF_DIVISION"
+  | "CHEF_BUREAU"
+  | "SECRETAIRE_BUREAU"
   | "AGENT"
-  | "ADMINISTRATEUR";
+  | "ADMINISTRATEUR"
+  | "VISIT";
 
 export interface ServiceModel {
   idService?: number;
@@ -29,6 +32,7 @@ export interface UtilisateurModel {
   roles?: Role[];
   actif?: boolean;
   service?: ServiceModel;
+  avatar?: string;
 }
 
 export interface RegisterInput {
@@ -47,6 +51,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   register: (data: RegisterInput) => Promise<UtilisateurModel>;
+  registerPublic: (data: RegisterInput) => Promise<UtilisateurModel>;
   logout: () => void;
 }
 
@@ -74,10 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Connexion (`/auth/login`)
   const login = useCallback(async (username: string, password: string): Promise<boolean> => {
     try {
-      console.log("################")
-      console.log(API_BASE_URL)
-      console.log("#############")
-      
       const res = await fetch(`${API_BASE_URL}/auth/login`, {
         method: "POST",
         headers: {
@@ -112,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: username,
         nom: username.split("@")[0],
         actif: true,
+        avatar: "https://ui-avatars.com/api/?name=U&background=2563EB&color=fff&size=128",
       };
 
       setUser(loggedUser);
@@ -124,15 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("jwt_token") : null;
   // Inscription (`/auth/enregistrer`)
   const register = useCallback(async (data: RegisterInput): Promise<UtilisateurModel> => {
     try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("jwt_token") : null;
       const res = await fetch(`${API_BASE_URL}/utilisateurs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify(data),
       });
@@ -156,16 +158,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Inscription publique (`/auth/enregistrer`) — sans authentification
+  const registerPublic = useCallback(async (data: RegisterInput): Promise<UtilisateurModel> => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/enregistrer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        let errorData;
+        try {
+          errorData = await res.json();
+        } catch {
+          errorData = null;
+        }
+        throw new Error(errorData?.message || `Erreur lors de l'enregistrement public (Code: ${res.status})`);
+      }
+
+      // UtilisateurModel
+      const newUser: UtilisateurModel = await res.json();
+      return newUser;
+    } catch (error) {
+      console.error("Échec de l'enregistrement public :", error);
+      throw error;
+    }
+  }, []);
+
   // Déconnexion
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem("auth_user");
     localStorage.removeItem("auth_token");
+    localStorage.removeItem("jwt_token");
   }, []);
 
   const value = useMemo(
-    () => ({ user, isLoading, login, register, logout }),
-    [user, isLoading, login, register, logout]
+    () => ({ user, isLoading, login, register, registerPublic, logout }),
+    [user, isLoading, login, register, registerPublic, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

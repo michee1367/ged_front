@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useGED, Priorite, PIORITIES_LABELS, EnregistrerDossierCommand } from "@/components/providers/data-provider";
+import { useGED, Priorite, PRIORITIES_LABELS, EnregistrerDossierCommand } from "@/components/providers/data-provider";
 import { 
   Plus, 
   Trash2, 
@@ -235,8 +235,8 @@ export default function DossiersPage() {
                   className="w-full h-10 px-3 rounded-md border border-slate-200 bg-background text-sm focus:outline-none focus:ring-2 focus:ring-blue-600"
                 >
                   {
-                    (Object.keys(PIORITIES_LABELS) as Priorite[]).map((p) => (
-                      <option key={p} value={p}>{PIORITIES_LABELS[p]}</option>
+                    (Object.keys(PRIORITIES_LABELS) as Priorite[]).map((p) => (
+                      <option key={p} value={p}>{PRIORITIES_LABELS[p]}</option>
                     ))
                     
                   }

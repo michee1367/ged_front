@@ -6,22 +6,52 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useGED } from "@/components/providers/data-provider";
+import { useGED, ServiceModel } from "@/components/providers/data-provider";
 
 export default function ServicesContent() {
-  const { services, utilisateurs } = useGED();
+  const { services, utilisateurs, creerService, modifierService, loadServicesAndUtilisateurs } = useGED();
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
 
   const [nomService, setNomService] = useState("");
   const [codeService, setCodeService] = useState("");
 
-  const handleCreateService = (e: React.FormEvent) => {
+  // Édition d'un service existant
+  const [editingService, setEditingService] = useState<ServiceModel | null>(null);
+  const [editNom, setEditNom] = useState("");
+  const [editCode, setEditCode] = useState("");
+
+  const handleCreateService = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nomService || !codeService) return;
-    alert(`Service "${nomService}" (${codeService}) créé avec succès !`);
-    setNomService("");
-    setCodeService("");
-    setShowAddServiceModal(false);
+    try {
+      const service = await creerService({ nom: nomService, code: codeService });
+      await loadServicesAndUtilisateurs(1, 100);
+      alert(`Service "${service.nom || nomService}" (${service.code || codeService}) créé avec succès !`);
+      setNomService("");
+      setCodeService("");
+      setShowAddServiceModal(false);
+    } catch {
+      alert("Échec de la création du service");
+    }
+  };
+
+  const openEditModal = (s: ServiceModel) => {
+    setEditingService(s);
+    setEditNom(s.nom || "");
+    setEditCode(s.code || "");
+  };
+
+  const handleEditService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingService || !editingService.idService) return;
+    try {
+      await modifierService(editingService.idService, { nom: editNom, code: editCode });
+      await loadServicesAndUtilisateurs(1, 100);
+      alert(`Service "${editNom}" modifié avec succès !`);
+      setEditingService(null);
+    } catch {
+      alert("Échec de la modification du service");
+    }
   };
 
   return (
@@ -73,6 +103,26 @@ export default function ServicesContent() {
         </Card>
       )}
 
+      {editingService && (
+        <Card className="border-amber-200 bg-amber-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-amber-900 flex justify-between items-center">
+              Modifier le service {editNom}
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingService(null)}>
+                <XCircle className="h-4 w-4 text-slate-400" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleEditService} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Input placeholder="Nom du service" value={editNom} onChange={(e) => setEditNom(e.target.value)} required className="h-8 text-xs bg-white" />
+              <Input placeholder="Code (ex: DRH)" value={editCode} onChange={(e) => setEditCode(e.target.value)} required className="h-8 text-xs bg-white" />
+              <Button type="submit" size="sm" className="h-8 text-xs bg-amber-600 text-white">Enregistrer</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {services.map((serv) => {
           const countAgents = utilisateurs.filter((u) => u.service?.idService === serv.idService).length;
@@ -97,7 +147,7 @@ export default function ServicesContent() {
                 </p>
                 <div className="pt-2 border-t border-slate-100 flex justify-between items-center">
                   <span className="text-[11px] text-slate-400">ID: #{serv.idService}</span>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600">
+                  <Button variant="ghost" size="sm" className="h-7 text-xs text-blue-600" onClick={() => openEditModal(serv)}>
                     Gérer le service
                   </Button>
                 </div>

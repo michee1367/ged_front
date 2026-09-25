@@ -31,7 +31,7 @@ import { useGED, UtilisateurModel, Role, ROLE_LABELS } from "@/components/provid
 import { useAuth, RegisterInput } from "@/components/providers/auth-provider";
 
 export default function UtilisateursContent() {
-  const { utilisateurs, services, loadServicesAndUtilisateurs } = useGED();
+  const { utilisateurs, services, loadServicesAndUtilisateurs, modifierUtilisateur, modifierStatutUtilisateur } = useGED();
   const { register } = useAuth();
 
   const [globalFilter, setGlobalFilter] = useState("");
@@ -50,10 +50,22 @@ export default function UtilisateursContent() {
   const [role, setRole] = useState<Role>("AGENT");
   const [idServiceSelect, setIdServiceSelect] = useState<number | undefined>(undefined);
 
+  // Édition d'un utilisateur existant
+  const [editingUser, setEditingUser] = useState<UtilisateurModel | null>(null);
+  const [editNom, setEditNom] = useState("");
+  const [editPostNom, setEditPostNom] = useState("");
+  const [editPrenom, setEditPrenom] = useState("");
+  const [editPhoneNumber, setEditPhoneNumber] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editMotDePasse, setEditMotDePasse] = useState("");
+  const [editRole, setEditRole] = useState<Role>("AGENT");
+  const [editIdService, setEditIdService] = useState<number | undefined>(undefined);
+  const [editActif, setEditActif] = useState(true);
+
   const filteredUtilisateurs = useMemo(() => {
     return utilisateurs.filter((u) => {
-      if (roleFilter !== "all" && u.roles?.includes(roleFilter)) return false;
-      if (serviceFilter !== "all" && String(u.service?.nom) !== serviceFilter) return false;
+      if (roleFilter !== "all" && !u.roles?.includes(roleFilter)) return false;
+      if (serviceFilter !== "all" && String(u.service?.idService) !== serviceFilter) return false;
       return true;
     });
   }, [utilisateurs, roleFilter, serviceFilter]);
@@ -85,6 +97,54 @@ export default function UtilisateursContent() {
     setShowAddUserModal(false);
   };
 
+  const openEditModal = (u: UtilisateurModel) => {
+    setEditingUser(u);
+    setEditNom(u.nom || "");
+    setEditPostNom(u.postNom || "");
+    setEditPrenom(u.prenom || "");
+    setEditPhoneNumber(u.phoneNumber || "");
+    setEditEmail(u.email || "");
+    setEditMotDePasse("");
+    setEditRole((u.roles?.[0] as Role) || "AGENT");
+    setEditIdService(u.service?.idService);
+    setEditActif(u.actif ?? true);
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editingUser.idUtilisateur) return;
+    try {
+      await modifierUtilisateur(editingUser.idUtilisateur, {
+        nom: editNom,
+        postNom: editPostNom,
+        prenom: editPrenom,
+        phoneNumber: editPhoneNumber,
+        email: editEmail,
+        ...(editMotDePasse ? { motDePasse: editMotDePasse } : {}),
+        roles: [editRole],
+        actif: editActif,
+        idService: editIdService,
+      });
+      await loadServicesAndUtilisateurs(1, 100);
+      alert(`Utilisateur ${editPrenom} ${editNom} ${editPostNom} modifié avec succès !`);
+      setEditingUser(null);
+    } catch {
+      alert("Échec de la modification de l'utilisateur");
+    }
+  };
+
+  const handleToggleStatus = async (u: UtilisateurModel) => {
+    if (!u.idUtilisateur) return;
+    const nextActif = !(u.actif ?? true);
+    try {
+      await modifierStatutUtilisateur(u.idUtilisateur, nextActif);
+      await loadServicesAndUtilisateurs(1, 100);
+      alert(`Compte ${nextActif ? "activé" : "désactivé"} : ${u.nom} ${u.postNom} ${u.prenom}`);
+    } catch {
+      alert("Échec du changement de statut");
+    }
+  };
+
   const userColumns: ColumnDef<UtilisateurModel>[] = [
     {
       accessorKey: "nom",
@@ -107,14 +167,15 @@ export default function UtilisateursContent() {
       },
     },
     {
-      accessorKey: "role",
+      accessorKey: "roles",
       header: "Rôle",
-      cell: ({ getValue }) => {
-        const r = getValue() as Role;
-        const isAdmin = r === "ADMINISTRATEUR";
+      cell: ({ row }) => {
+        const roles = row.original.roles || [];
+        const isAdmin = roles.includes("ADMINISTRATEUR");
+        const label = (roles[0] && ROLE_LABELS[roles[0]]) || "Non défini";
         return (
           <Badge variant={isAdmin ? "danger" : "outline"} className="text-[10px]">
-            {ROLE_LABELS[r] || r}
+            {label}
           </Badge>
         );
       },
@@ -136,25 +197,36 @@ export default function UtilisateursContent() {
     {
       id: "statut",
       header: "État Compte",
-      cell: () => (
-        <Badge variant="success" className="text-[10px] gap-1">
-          <CheckCircle2 className="h-3 w-3" /> Actif
-        </Badge>
-      ),
+      cell: ({ row }) => {
+        const actif = row.original.actif ?? true;
+        return actif ? (
+          <Badge variant="success" className="text-[10px] gap-1">
+            <CheckCircle2 className="h-3 w-3" /> Actif
+          </Badge>
+        ) : (
+          <Badge variant="danger" className="text-[10px] gap-1">
+            <XCircle className="h-3 w-3" /> Inactif
+          </Badge>
+        );
+      },
     },
     {
       id: "actions",
       header: "Actions",
-      cell: () => (
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-blue-600 hover:text-blue-800">
-            Éditer
-          </Button>
-          <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-red-500 hover:text-red-700">
-            Désactiver
-          </Button>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const u = row.original;
+        const actif = u.actif ?? true;
+        return (
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-blue-600 hover:text-blue-800" onClick={() => openEditModal(u)}>
+              Éditer
+            </Button>
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-red-500 hover:text-red-700" onClick={() => handleToggleStatus(u)}>
+              {actif ? "Désactiver" : "Activer"}
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -245,7 +317,7 @@ export default function UtilisateursContent() {
               </select>
 
               <div className="sm:col-span-3">
-                <select value={idServiceSelect} onChange={(e) => setIdServiceSelect(e.target.value ? Number(e.target.value) : 0)} className="w-full h-8 text-xs bg-white border border-slate-200 rounded px-2">
+                <select value={idServiceSelect ?? ""} onChange={(e) => setIdServiceSelect(e.target.value ? Number(e.target.value) : undefined)} className="w-full h-8 text-xs bg-white border border-slate-200 rounded px-2">
                   <option value="">-- Rattacher à un service --</option>
                   {services.map((s) => (
                     <option key={s.idService} value={s.idService}>{s.nom} ({s.code})</option>
@@ -253,6 +325,64 @@ export default function UtilisateursContent() {
                 </select>
               </div>
               <Button type="submit" size="sm" className="h-8 text-xs bg-blue-600 text-white">Créer le compte</Button>
+            </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {editingUser && (
+        <Card className="border-amber-200 bg-amber-50/30">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-amber-900 flex justify-between items-center">
+              Modifier l&apos;utilisateur {editNom} {editPostNom} {editPrenom}
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingUser(null)}>
+                <XCircle className="h-4 w-4 text-slate-400" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleEditUser} className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <Input placeholder="Nom" value={editNom} onChange={(e) => setEditNom(e.target.value)} required className="h-8 text-xs bg-white" />
+              <Input placeholder="Post Nom" value={editPostNom} onChange={(e) => setEditPostNom(e.target.value)} className="h-8 text-xs bg-white" />
+              <Input placeholder="Prénom" value={editPrenom} onChange={(e) => setEditPrenom(e.target.value)} className="h-8 text-xs bg-white" />
+              <Input placeholder="Numero telephone" value={editPhoneNumber} onChange={(e) => setEditPhoneNumber(e.target.value)} required className="h-8 text-xs bg-white" />
+              <Input placeholder="Nouveau mot de passe (optionnel)" type="password" value={editMotDePasse} onChange={(e) => setEditMotDePasse(e.target.value)} className="h-8 text-xs bg-white" />
+              <Input type="email" placeholder="Adresse Email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="h-8 text-xs bg-white" />
+
+              <select
+                value={editRole}
+                onChange={(e) => setEditRole(e.target.value as Role)}
+                className="h-8 text-xs bg-white border border-slate-200 rounded px-2"
+              >
+                {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={editIdService ?? ""}
+                onChange={(e) => setEditIdService(e.target.value ? Number(e.target.value) : undefined)}
+                className="h-8 text-xs bg-white border border-slate-200 rounded px-2"
+              >
+                <option value="">-- Rattacher à un service --</option>
+                {services.map((s) => (
+                  <option key={s.idService} value={s.idService}>{s.nom} ({s.code})</option>
+                ))}
+              </select>
+
+              <label className="flex items-center gap-2 h-8 text-xs text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={editActif}
+                  onChange={(e) => setEditActif(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Compte actif
+              </label>
+
+              <Button type="submit" size="sm" className="h-8 text-xs bg-amber-600 text-white">Enregistrer</Button>
             </form>
           </CardContent>
         </Card>
