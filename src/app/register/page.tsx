@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -11,8 +11,11 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth, Role } from "@/components/providers/auth-provider";
+import { useAuth, type ServiceModel } from "@/components/providers/auth-provider";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
 
 const schema = z
   .object({
@@ -21,6 +24,7 @@ const schema = z
     prenom: z.string().optional(),
     phoneNumber: z.string().min(8, "Numéro de téléphone invalide"),
     email: z.string().email("Adresse email invalide"),
+    service: z.string().optional(),
     motDePasse: z.string().min(4, "Le mot de passe doit contenir au moins 4 caractères"),
     confirmation: z.string(),
   })
@@ -32,11 +36,45 @@ const schema = z
 type FormData = z.infer<typeof schema>;
 
 export default function RegisterPage() {
-  const { registerPublic, login } = useAuth();
+  const { registerPublic, hydrateUser, login } = useAuth();
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [services, setServices] = useState<ServiceModel[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState(false);
+
+  // `GET /services` est public (SecurityConfig : requestMatchers(GET, SERVICES).permitAll())
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadServices() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/services?page=1&per_page=100`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (cancelled) return;
+        // On ne garde que les services exploitables : un `idService` absent
+        // produirait un `NaN` dans le payload.
+        setServices(
+          (data.content ?? []).filter(
+            (service: ServiceModel) => typeof service.idService === "number"
+          )
+        );
+      } catch (error) {
+        console.error("Chargement de la liste des services impossible :", error);
+        if (!cancelled) setServicesError(true);
+      } finally {
+        if (!cancelled) setServicesLoading(false);
+      }
+    }
+
+    loadServices();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const {
     register,
@@ -50,44 +88,58 @@ export default function RegisterPage() {
       prenom: "",
       phoneNumber: "",
       email: "",
+      service: "",
       motDePasse: "",
       confirmation: "",
     },
   });
 
-  const onSubmit = async (data: FormData) => {
-    setLoading(true);
+  const onSubmit = useCallback(
+    async (data: FormData) => {
+      setLoading(true);
 
-    try {
-      // Inscription publique via `/auth/enregistrer` (sans authentification préalable)
-      await registerPublic({
-        nom: data.nom,
-        postNom: data.postNom,
-        prenom: data.prenom,
-        phoneNumber: data.phoneNumber,
-        email: data.email,
-        motDePasse: data.motDePasse,
-        roles: ["VISIT"] as Role[],
-      });
-      toast.success("Compte créé avec succès !");
+      try {
+        // Inscription publique via `/auth/enregistrer` (sans authentification préalable).
+        // Le backend force `roles = ["VISIT"]` et répond avec le `UtilisateurModel` complet.
+        const idService = data.service ? Number(data.service) : undefined;
 
-      // Connexion automatique
-      await login(data.email, data.motDePasse);
-      toast.success("Connexion réussie !");
-      router.push("/dashboard");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Erreur lors de la création du compte");
-      console.error("Erreur d'inscription GED :", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+        const created = await registerPublic({
+          nom: data.nom,
+          postNom: data.postNom || undefined,
+          prenom: data.prenom || undefined,
+          phoneNumber: data.phoneNumber,
+          email: data.email,
+          motDePasse: data.motDePasse,
+          idService,
+        });
+
+        // Le profil complet (nom, service, rôles) est conservé avant la connexion,
+        // car `/auth/login` ne renvoie que le token.
+        hydrateUser(created);
+        toast.success("Compte créé avec succès !");
+
+        // Connexion automatique
+        const level = await login(data.email, data.motDePasse);
+        toast.success("Connexion réussie !");
+
+        // Un compte issu de l'inscription publique est toujours `VISIT` :
+        // il est renvoyé vers la page d'attente de validation.
+        router.push(level === "VISITEUR" ? "/contact-admin" : "/dashboard");
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Erreur lors de la création du compte");
+        console.error("Erreur d'inscription GED :", error);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [hydrateUser, login, registerPublic, router]
+  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center mb-8">
-          <div className="flex h-30 w-50 items-center justify-center rounded-2xl bg-blue-600 p-2.5 mb-4 shadow-lg">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600 p-2.5 mb-4 shadow-lg">
             <img
               src="/logo.jpeg"
               alt="Logo Ministère"
@@ -101,7 +153,10 @@ export default function RegisterPage() {
         <Card className="shadow-lg">
           <CardHeader>
             <CardTitle>Créer un compte</CardTitle>
-            <CardDescription>Inscrivez-vous pour accéder à l&apos;espace documentaire</CardDescription>
+            <CardDescription>
+              Inscrivez-vous pour accéder à l&apos;espace documentaire. Un administrateur devra
+              valider votre accès.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -140,6 +195,26 @@ export default function RegisterPage() {
                   {...register("email")}
                 />
                 {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="service">Service de rattachement</Label>
+                <Select id="service" disabled={servicesLoading} {...register("service")}>
+                  <option value="">Non précisé</option>
+                  {servicesLoading && <option value="">Chargement des services…</option>}
+                  {services.map((service) => (
+                    <option key={service.idService} value={String(service.idService)}>
+                      {service.nom}
+                      {service.code ? ` (${service.code})` : ""}
+                    </option>
+                  ))}
+                </Select>
+                {servicesError && (
+                  <p className="text-xs text-amber-600">
+                    Liste des services indisponible. Vous pourrez la définir plus tard avec
+                    l&apos;administration.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

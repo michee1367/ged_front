@@ -40,12 +40,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // L'API GED attend la propriété `username` (on passe l'email saisi)
-      await login(data.email, data.password);
+      // L'API GED attend la propriété `username` (on passe l'email ou le téléphone saisi).
+      const level = await login(data.email, data.password);
       toast.success("Connexion réussie !");
-      router.push("/dashboard");
-    } catch (error: any) {
-      toast.error(error?.message || "Identifiants incorrects ou compte inexistant");
+
+      // Un compte `VISIT` n'a pas accès à la GED : il est renvoyé vers la
+      // page d'attente de validation.
+      router.push(level === "VISITEUR" ? "/contact-admin" : "/dashboard");
+    } catch (error: unknown) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Identifiants incorrects ou compte inexistant"
+      );
       console.error("Erreur de connexion GED :", error);
     } finally {
       setLoading(false);
@@ -75,12 +82,12 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Adresse Email ou numero telephone</Label>
-                <Input 
-                  id="email" 
-                  type="text" 
-                  placeholder="votre.email@ministere.cd" 
-                  {...register("email")} 
+                <Label htmlFor="email">Adresse Email ou numéro de téléphone</Label>
+                <Input
+                  id="email"
+                  type="text"
+                  placeholder="votre.email@ministere.cd"
+                  {...register("email")}
                 />
                 {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
               </div>

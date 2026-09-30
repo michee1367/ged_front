@@ -9,6 +9,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { useAuth } from "./auth-provider";
 
 // --- TYPES ALIGNÉS SUR LA SPÉCIFICATION OPENAPI GED ---
 
@@ -214,43 +215,18 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export function GEDProvider({ children }: { children: ReactNode }) {
-  const [isReady, setIsReady] = useState(false);
+  const { accessLevel, token } = useAuth();
+  const [loadedToken, setLoadedToken] = useState<string | null>(null);
+
+  // Dérivé plutôt que stocké : évite un `setState` synchrone dans l'effet.
+  const isReady = accessLevel !== "AUTORISE" || loadedToken === token;
   const [dossiers, setDossiers] = useState<ReponseDossier[]>([]);
   const [utilisateurs, setUtilisateurs] = useState<UtilisateurModel[]>([]);
   const [services, setServices] = useState<ServiceModel[]>([]);
 
-  // Chargement initial des données
-  useEffect(() => {
-    async function loadInitialData() {
-      try {
-        const headers = getAuthHeaders();
-        const [resDossiers, resUsers, resServices] = await Promise.all([
-          fetch(`${API_BASE_URL}/dossiers/?per_page=20`, { headers }),
-          fetch(`${API_BASE_URL}/utilisateurs?per_page=100`, { headers }),
-          fetch(`${API_BASE_URL}/services?per_page=100`, { headers }),
-        ]);
-
-        if (resDossiers.ok) {
-          const data = await resDossiers.json();
-          setDossiers(data.content || []);
-        }
-        if (resUsers.ok) {
-          const data = await resUsers.json();
-          setUtilisateurs(data.content || []);
-        }
-        if (resServices.ok) {
-          const data = await resServices.json();
-          setServices(data.content || []);
-        }
-      } catch (error) {
-        console.error("Erreur lors de l'initialisation de l'API GED", error);
-      } finally {
-        setIsReady(true);
-      }
-    }
-
-    loadInitialData();
-  }, []);
+  // Chargement des données : uniquement lorsqu'une session autorisée existe.
+  // Déclaré après les callbacks (voir plus bas) pour éviter une référence
+  // antérieure à l'initialisation.
 
   // Auth: Login
   const login = useCallback(async (username: string, password: string) => {
@@ -305,10 +281,11 @@ export function GEDProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Erreur lors de l'initialisation de l'API GED", error);
       } finally {
-        setIsReady(true);
+        if (token) setLoadedToken(token);
       }
-    }, []
-  )
+    },
+    [token]
+  );
 
   // Obtenir un dossier par son ID
   const getDossierById = useCallback(async (id: number): Promise<ReponseDossier> => {
@@ -566,17 +543,54 @@ export function GEDProvider({ children }: { children: ReactNode }) {
     ]
   );
 
-  if (!isReady) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-3">
-          <div className="h-8 w-8 mx-auto border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm text-slate-500">Connexion à l&apos;API GED...</p>
-        </div>
-      </div>
-    );
-  }
+  // Charge les données dès qu'une session autorisée est disponible, et
+  // recharge à chaque nouveau jeton (nouvelle connexion). Sans session
+  // (anonyme) ou pour un `VISIT`, aucune requête n'est émise : l'API
+  // renverrait 403.
+  useEffect(() => {
+    if (accessLevel !== "AUTORISE" || !token || loadedToken === token) return;
 
+    let cancelled = false;
+
+    async function load() {
+      try {
+        const headers = getAuthHeaders();
+        const [resDossiers, resUsers, resServices] = await Promise.all([
+          fetch(`${API_BASE_URL}/dossiers/?page=1&per_page=100`, { headers }),
+          fetch(`${API_BASE_URL}/utilisateurs?page=1&per_page=100`, { headers }),
+          fetch(`${API_BASE_URL}/services?page=1&per_page=100`, { headers }),
+        ]);
+
+        if (cancelled) return;
+
+        if (resDossiers.ok) {
+          const data = await resDossiers.json();
+          setDossiers(data.content || []);
+        }
+        if (resUsers.ok) {
+          const data = await resUsers.json();
+          setUtilisateurs(data.content || []);
+        }
+        if (resServices.ok) {
+          const data = await resServices.json();
+          setServices(data.content || []);
+        }
+      } catch (error) {
+        console.error("Erreur lors de l'initialisation de l'API GED", error);
+      } finally {
+        if (!cancelled) setLoadedToken(token);
+      }
+    }
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [accessLevel, token, loadedToken]);
+
+  // Pas de garde global ici : les pages publiques (`/`, `/login`, `/register`,
+  // `/contact-admin`) doivent s'afficher sans attendre l'API. Le verrou
+  // `isReady` est appliqué par `ProtectedLayout`, sur le groupe `(app)`.
   return <GEDContext.Provider value={value}>{children}</GEDContext.Provider>;
 }
 
