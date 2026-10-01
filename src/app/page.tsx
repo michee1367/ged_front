@@ -70,7 +70,7 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-border bg-white/85 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 p-1">
+            <span className="flex h-13 w-50 items-center justify-center rounded-lg bg-blue-600 p-1">
               <img src="/logo.jpeg" alt="Logo Ministère" className="h-full w-full object-contain" />
             </span>
             <div className="leading-tight">
