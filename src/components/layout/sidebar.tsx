@@ -49,9 +49,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}>
         
         {/* En-tête de la Sidebar */}
-        <div className="flex h-16 items-center justify-between bg-blue-600 border-b border-blue-700 px-6 text-white shadow-sm">
+        <div className="flex h-16 items-center justify-between bg-blue-600 border-b border-blue-700 px-0 text-white shadow-sm">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg overflow-hidden shrink-0 bg-white/10 p-1">
+            <div className="flex h-20 w-64 items-center justify-center rounded-lg overflow-hidden shrink-0  p-1">
               <img 
                 src="/logo.jpeg" 
                 alt="Logo Ministère" 
@@ -59,8 +59,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               />
             </div>
             <div>
-              <p className="text-sm font-bold text-white leading-tight">GED Ministère</p>
-              <p className="text-[11px] text-blue-100">Secrétariat Général</p>
+              <p className="text-sm font-bold text-white leading-tight"></p>
+              <p className="text-[11px] text-blue-100"></p>
             </div>
           </div>
 

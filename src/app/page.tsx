@@ -70,12 +70,10 @@ export default function LandingPage() {
       <header className="sticky top-0 z-30 border-b border-border bg-white/85 backdrop-blur-sm">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <span className="flex h-13 w-50 items-center justify-center rounded-lg bg-blue-600 p-1">
+            <span className="flex h-20 w-70 items-center justify-center rounded-lg p-1">
               <img src="/logo.jpeg" alt="Logo Ministère" className="h-full w-full object-contain" />
             </span>
             <div className="leading-tight">
-              <p className="text-sm font-bold text-slate-900">GED Ministère</p>
-              <p className="hidden text-[11px] text-slate-500 sm:block">Secrétariat Général</p>
             </div>
           </div>
 
@@ -103,20 +101,19 @@ export default function LandingPage() {
           aria-hidden
           className="pointer-events-none absolute inset-x-0 -top-24 h-64 rounded-full bg-blue-200/40 blur-3xl"
         />
-        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28">
-          <div className="max-w-3xl">
+        <div className="relative grid lg:grid-cols-2">
+          <div className="px-4 py-16 sm:px-6 sm:py-20 lg:py-28 lg:pl-[max(1.5rem,calc((100vw-72rem)/2+1rem))] lg:pr-12">
             <span className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-medium text-blue-700">
               <ShieldCheck className="h-3.5 w-3.5" />
               Accès réservé aux agents habilités
             </span>
 
-            <h1 className="mt-6 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-              La gestion électronique de documents du Secrétariat du Ministère
+            <h1 className="mt-6 max-w-2xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+              La Gestion Electronique des Documents du Secrétariat Général du Ministère
             </h1>
 
             <p className="mt-5 max-w-2xl text-lg text-slate-600">
-              Centralisez vos dossiers, organisez les transmissions entre services et istrumentez le
-              suivi de votre courrier, dans un espace unique et sécurisé.
+              Une administration moderne au service d'une éducation de qualité.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -132,7 +129,7 @@ export default function LandingPage() {
               </Link>
             </div>
 
-            <ul className="mt-10 grid gap-3 sm:grid-cols-2">
+            <ul className="mt-10 grid max-w-2xl gap-3 sm:grid-cols-2">
               {highlights.map((item) => (
                 <li key={item} className="flex items-start gap-2 text-sm text-slate-600">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
@@ -140,6 +137,18 @@ export default function LandingPage() {
                 </li>
               ))}
             </ul>
+          </div>
+
+          <div className="relative min-h-[300px] w-full lg:min-h-full">
+            <img
+              src="/images/photo_background.jpeg"
+              alt="Secrétariat du Ministère"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-r from-blue-50 via-transparent to-transparent lg:bg-gradient-to-r"
+            />
           </div>
         </div>
       </section>
@@ -205,7 +214,7 @@ export default function LandingPage() {
       <section className="bg-blue-600 py-16">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
           <h2 className="text-3xl font-bold tracking-tight text-white">
-            Vous trabajamos déjà au Ministère ?
+            Vous travaillez déjà au Ministère ?
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-blue-100">
             Créez votre compte et signalez votre service de rattachement. L&apos;administration
